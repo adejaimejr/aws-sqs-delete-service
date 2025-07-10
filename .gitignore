@@ -147,7 +147,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Stack files
+# Stack files - SECURITY: Contains credentials
 stack-*.yaml
 stack-*.yml
 stack-production.yaml

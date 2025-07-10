@@ -23,33 +23,140 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Pydantic models
+# Pydantic models with improved documentation and examples
 class DeleteRequest(BaseModel):
-    """Model for SQS message deletion request"""
-    id_aws: str = Field(..., description="AWS account ID (e.g.: 097826606700)")
-    queue_name: str = Field(..., description="Queue name (e.g.: DLQ-PROD-ActiveCampaign.fifo)")
-    sqs_endpoint: str = Field(..., description="SQS endpoint (e.g.: sqs.us-east-2.amazonaws.com)")
-    receipt_handle: str = Field(..., description="Message receipt handle")
+    """Request model for SQS message deletion"""
+    id_aws: str = Field(
+        ..., 
+        description="AWS account ID",
+        example="123456789012",
+        min_length=12,
+        max_length=12
+    )
+    queue_name: str = Field(
+        ..., 
+        description="SQS queue name",
+        example="my-queue.fifo"
+    )
+    sqs_endpoint: str = Field(
+        ..., 
+        description="SQS service endpoint",
+        example="sqs.us-east-1.amazonaws.com"
+    )
+    receipt_handle: str = Field(
+        ..., 
+        description="Message receipt handle obtained from SQS receive operation",
+        example="AQEBwJnKyrHigUMZBiSOyfZEXAMPLEUvO..."
+    )
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "id_aws": "123456789012",
+                "queue_name": "my-queue.fifo",
+                "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
+                "receipt_handle": "AQEBwJnKyrHigUMZBiSOyfZEXAMPLEUvO..."
+            }
+        }
 
 class DeleteResponse(BaseModel):
-    """Model for deletion response"""
-    success: bool
-    message: str
-    queue_url: Optional[str] = None
+    """Response model for message deletion operations"""
+    success: bool = Field(description="Operation success status")
+    message: str = Field(description="Operation result message")
+    queue_url: Optional[str] = Field(None, description="Complete SQS queue URL")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Message deleted successfully",
+                "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue.fifo"
+            }
+        }
     
 class HealthResponse(BaseModel):
-    """Model for health check response"""
-    status: str
-    service: str
-    version: str
+    """Response model for health check operations"""
+    status: str = Field(description="Service status")
+    service: str = Field(description="Service name")
+    version: str = Field(description="Current API version")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "status": "healthy",
+                "service": "AWS SQS Delete Service",
+                "version": "1.0.3"
+            }
+        }
 
-# Initialize FastAPI app
+class ConnectionResponse(BaseModel):
+    """Response model for connection test operations"""
+    success: bool = Field(description="Connection test result")
+    message: str = Field(description="Connection status message")
+    region: str = Field(description="AWS region being used")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "success": True,
+                "message": "AWS SQS connection established successfully",
+                "region": "us-east-1"
+            }
+        }
+
+# Initialize FastAPI app with enhanced documentation
 app = FastAPI(
-    title=os.getenv("API_TITLE", "AWS SQS Delete Service"),
-    version=os.getenv("API_VERSION", "1.0.2"),
-    description=os.getenv("API_DESCRIPTION", "API to delete messages from Amazon SQS"),
+    title="AWS SQS Delete Service",
+    version=os.getenv("API_VERSION", "1.0.3"),
+    description="""
+## AWS SQS Delete Service
+
+**Professional FastAPI service for deleting AWS SQS messages via HTTP endpoint**
+
+This service simplifies n8n integration with AWS SQS by providing a single HTTP endpoint 
+for message deletion operations, eliminating the complexity of direct AWS SDK integration.
+
+### Features
+- 🔒 **Secure**: API key authentication
+- 🚀 **Fast**: Async operations with high performance
+- 📊 **Monitored**: Health checks and structured logging
+- 🐳 **Containerized**: Docker-ready deployment
+- 📖 **Documented**: Complete OpenAPI specification
+
+### Authentication
+Protected endpoints require an API key passed via the `X-API-Key` header.
+
+### Usage
+Perfect for n8n workflows, automation tools, and any application needing 
+programmatic AWS SQS message deletion capabilities.
+
+---
+**Repository**: [github.com/adejaimejr/aws-sqs-delete-service](https://github.com/adejaimejr/aws-sqs-delete-service)
+    """,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    contact={
+        "name": "AWS SQS Delete Service",
+        "url": "https://github.com/adejaimejr/aws-sqs-delete-service",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://github.com/adejaimejr/aws-sqs-delete-service/blob/main/LICENSE",
+    },
+    tags_metadata=[
+        {
+            "name": "Health",
+            "description": "Service health monitoring endpoints",
+        },
+        {
+            "name": "SQS Operations",
+            "description": "AWS SQS message management operations",
+        },
+        {
+            "name": "Authentication",
+            "description": "Connection testing and authentication endpoints",
+        },
+    ],
 )
 
 # Authentication function
@@ -118,36 +225,70 @@ def get_sqs_client():
             detail=f"Error initializing AWS SQS client: {str(e)}"
         )
 
-@app.get("/", response_model=HealthResponse)
+@app.get(
+    "/", 
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Basic Health Check",
+    description="Quick health check endpoint that returns service status and version information."
+)
 async def root():
-    """Health check endpoint - NO authentication"""
+    """Basic health check endpoint - NO authentication required"""
     return HealthResponse(
         status="online",
         service="AWS SQS Delete Service",
-        version=os.getenv("API_VERSION", "1.0.0")
+        version=os.getenv("API_VERSION", "1.0.3")
     )
 
-@app.get("/health", response_model=HealthResponse)
+@app.get(
+    "/health", 
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Detailed Health Check",
+    description="Comprehensive health check endpoint for monitoring and load balancer verification."
+)
 async def health():
-    """Detailed health check endpoint - NO authentication"""
+    """Detailed health check endpoint - NO authentication required"""
     return HealthResponse(
         status="healthy",
         service="AWS SQS Delete Service",
-        version=os.getenv("API_VERSION", "1.0.0")
+        version=os.getenv("API_VERSION", "1.0.3")
     )
 
-@app.post("/delete", response_model=DeleteResponse)
+@app.post(
+    "/delete-message", 
+    response_model=DeleteResponse,
+    tags=["SQS Operations"],
+    summary="Delete SQS Message",
+    description="""
+    Delete a specific message from an AWS SQS queue using its receipt handle.
+    
+    **Required**: Valid receipt handle obtained from a previous SQS receive operation.
+    
+    **Perfect for**: n8n workflows, automation scripts, and batch processing systems.
+    """,
+    responses={
+        200: {
+            "description": "Message deleted successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "Message deleted successfully",
+                        "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue.fifo"
+                    }
+                }
+            }
+        },
+        401: {"description": "Authentication required"},
+        500: {"description": "AWS or internal server error"}
+    }
+)
 async def delete_message(request: DeleteRequest, _: bool = Depends(verify_api_key)):
     """
     Delete a message from SQS using the receipt handle
     
-    **REQUIRES AUTHENTICATION**: Use header X-API-Key: your_password
-    
-    Args:
-        request: Request data containing message information
-        
-    Returns:
-        DeleteResponse: Response with operation status
+    **REQUIRES AUTHENTICATION**: Use header `X-API-Key: your_password`
     """
     try:
         # Construct queue URL - remove https:// if already present
@@ -180,22 +321,48 @@ async def delete_message(request: DeleteRequest, _: bool = Depends(verify_api_ke
             detail=f"Error deleting message: {str(e)}"
         )
 
-@app.get("/test-connection")
+@app.get(
+    "/test-connection",
+    response_model=ConnectionResponse,
+    tags=["Authentication"],
+    summary="Test AWS Connection",
+    description="""
+    Verify that the service can successfully connect to AWS SQS with current credentials.
+    
+    **Use this to**: Validate AWS credentials and network connectivity before processing messages.
+    """,
+    responses={
+        200: {
+            "description": "Connection successful",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "AWS SQS connection established successfully",
+                        "region": "us-east-1"
+                    }
+                }
+            }
+        },
+        401: {"description": "Authentication required"},
+        500: {"description": "AWS connection failed"}
+    }
+)
 async def test_connection(_: bool = Depends(verify_api_key)):
     """
     Test connection with AWS SQS
     
-    **REQUIRES AUTHENTICATION**: Use header X-API-Key: your_password
+    **REQUIRES AUTHENTICATION**: Use header `X-API-Key: your_password`
     """
     try:
         sqs = get_sqs_client()
         # Try to list queues to test connection
         response = sqs.list_queues(MaxResults=1)
-        return {
-            "success": True,
-            "message": "AWS SQS connection established successfully",
-            "region": os.getenv('AWS_DEFAULT_REGION', 'us-east-2')
-        }
+        return ConnectionResponse(
+            success=True,
+            message="AWS SQS connection established successfully",
+            region=os.getenv('AWS_DEFAULT_REGION', 'us-east-2')
+        )
     except Exception as e:
         logger.error(f"Error testing connection: {str(e)}")
         raise HTTPException(
