@@ -256,7 +256,7 @@ async def health():
     )
 
 @app.post(
-    "/delete-message", 
+    "/delete", 
     response_model=DeleteResponse,
     tags=["SQS Operations"],
     summary="Delete SQS Message",
