@@ -62,7 +62,7 @@ increment_version() {
 }
 
 # Read current version
-CURRENT_VERSION=$(cat VERSION 2>/dev/null || echo "1.0.0")
+CURRENT_VERSION=$(cat VERSION 2>/dev/null || echo "1.0.7")
 echo -e "${YELLOW}📋 Current version: $CURRENT_VERSION${NC}"
 
 # Choose new version
@@ -94,6 +94,9 @@ fi
 
 # Update version
 echo $NEW_VERSION > VERSION
+
+# Update version in main.py
+sed -i '' "s/version=os\.getenv(\"API_VERSION\", \"[^\"]*\")/version=os.getenv(\"API_VERSION\", \"$NEW_VERSION\")/g" main.py
 
 # Build image
 echo -e "${BLUE}🔨 Building Docker image v$NEW_VERSION...${NC}"

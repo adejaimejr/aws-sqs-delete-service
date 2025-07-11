@@ -158,6 +158,7 @@ test_*.py
 *_test.py
 test/
 tests/
+teste/
 
 # Coverage
 .coverage

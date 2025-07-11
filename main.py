@@ -107,7 +107,7 @@ class ConnectionResponse(BaseModel):
 # Initialize FastAPI app with enhanced documentation
 app = FastAPI(
     title="AWS SQS Delete Service",
-    version=os.getenv("API_VERSION", "1.0.3"),
+    version=os.getenv("API_VERSION", "1.0.8"),
     description="""
 ## AWS SQS Delete Service
 
@@ -116,19 +116,131 @@ app = FastAPI(
 This service simplifies n8n integration with AWS SQS by providing a single HTTP endpoint 
 for message deletion operations, eliminating the complexity of direct AWS SDK integration.
 
+### 🚀 Quick Start Guide
+
+1. **Get your API key** - Contact your administrator or check your deployment configuration
+2. **Test connection** - Use `GET /test-connection` to verify AWS connectivity  
+3. **Delete messages** - Send POST requests to `/delete` with your message details
+4. **Monitor health** - Check service status via `GET /health`
+
 ### Features
-- 🔒 **Secure**: API key authentication
+- 🔒 **Secure**: API key authentication via `X-API-Key` header
 - 🚀 **Fast**: Async operations with high performance
-- 📊 **Monitored**: Health checks and structured logging
+- 📊 **Monitored**: Health checks and structured logging  
 - 🐳 **Containerized**: Docker-ready deployment
 - 📖 **Documented**: Complete OpenAPI specification
+- 🌐 **Multi-arch**: Supports AMD64 and ARM64 architectures
 
-### Authentication
-Protected endpoints require an API key passed via the `X-API-Key` header.
+### 🔐 Authentication
 
-### Usage
-Perfect for n8n workflows, automation tools, and any application needing 
-programmatic AWS SQS message deletion capabilities.
+All SQS operations require authentication via the `X-API-Key` header:
+
+```bash
+curl -H "X-API-Key: your-api-key-here" https://your-domain.com/delete
+```
+
+**Security Policy**: Never share your API key. In case of compromise, contact your administrator immediately for reissuing.
+
+### 💡 Common Use Cases
+
+**n8n Integration**: Perfect for n8n workflows needing SQS message deletion
+**Batch Processing**: Ideal for cleanup operations after message processing
+**Automation**: Integrate with any system requiring programmatic SQS operations
+**Error Handling**: Remove problematic messages from queues
+
+### 📚 Code Examples
+
+#### Python
+```python
+import requests
+
+api_key = "your-api-key-here"
+url = "https://your-domain.com/delete"
+headers = {"X-API-Key": api_key}
+payload = {
+    "id_aws": "123456789012",
+    "queue_name": "my-queue.fifo", 
+    "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
+    "receipt_handle": "AQEBwJnKyrHigUMZBi..."
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())
+```
+
+#### JavaScript (Node.js)
+```javascript
+const axios = require('axios');
+
+const apiKey = "your-api-key-here";
+const url = "https://your-domain.com/delete";
+const headers = { "X-API-Key": apiKey };
+const payload = {
+    "id_aws": "123456789012",
+    "queue_name": "my-queue.fifo",
+    "sqs_endpoint": "sqs.us-east-1.amazonaws.com", 
+    "receipt_handle": "AQEBwJnKyrHigUMZBi..."
+};
+
+axios.post(url, payload, { headers })
+    .then(response => console.log(response.data))
+    .catch(error => console.error(error));
+```
+
+#### cURL
+```bash
+curl -X POST "https://your-domain.com/delete" \
+  -H "X-API-Key: your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_aws": "123456789012",
+    "queue_name": "my-queue.fifo",
+    "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
+    "receipt_handle": "AQEBwJnKyrHigUMZBi..."
+  }'
+```
+
+### 🚨 Error Codes
+
+| Code | Description | Solution |
+|------|-------------|----------|
+| 401 | Authentication failed | Check your API key |
+| 422 | Validation error | Verify request parameters |
+| 500 | AWS/Server error | Check AWS credentials & connectivity |
+
+### 📊 API Limits
+
+- **Rate Limit**: 100 requests per minute per API key
+- **Payload Size**: Maximum 256KB per request
+- **Timeout**: 30 seconds per operation
+- **Concurrency**: Up to 10 concurrent requests per API key
+
+### 📝 Version History
+
+**v1.0.7** (Current) - Enhanced documentation and UX
+- ✅ Comprehensive Quick Start Guide with step-by-step instructions
+- ✅ Multi-language code examples (Python, JavaScript, cURL)
+- ✅ Detailed error documentation with solutions table
+- ✅ Professional API limits and specifications
+- ✅ Enhanced use cases and integration examples
+
+**v1.0.6** - Documentation improvements
+- ✅ Improved OpenAPI documentation structure
+- ✅ Enhanced endpoint descriptions with use cases
+- ✅ Better error response examples
+
+**v1.0.5** - Critical compatibility fix
+- ✅ Restored `/delete` endpoint for n8n compatibility
+- ✅ Enhanced documentation with examples
+- ✅ Professional OpenAPI specification
+
+**v1.0.4** - Documentation improvements
+- ✅ Professional Swagger UI with organized tags
+- ✅ Enhanced Pydantic models with examples
+
+**v1.0.3** - Multi-architecture support
+- ✅ AMD64 and ARM64 Docker images
+- ✅ Production-ready deployment
 
 ---
 **Repository**: [github.com/adejaimejr/aws-sqs-delete-service](https://github.com/adejaimejr/aws-sqs-delete-service)
@@ -237,7 +349,7 @@ async def root():
     return HealthResponse(
         status="online",
         service="AWS SQS Delete Service",
-        version=os.getenv("API_VERSION", "1.0.3")
+        version=os.getenv("API_VERSION", "1.0.8")
     )
 
 @app.get(
@@ -252,7 +364,7 @@ async def health():
     return HealthResponse(
         status="healthy",
         service="AWS SQS Delete Service",
-        version=os.getenv("API_VERSION", "1.0.3")
+        version=os.getenv("API_VERSION", "1.0.8")
     )
 
 @app.post(
@@ -266,6 +378,14 @@ async def health():
     **Required**: Valid receipt handle obtained from a previous SQS receive operation.
     
     **Perfect for**: n8n workflows, automation scripts, and batch processing systems.
+    
+    **Note**: This operation is idempotent - calling it multiple times with the same receipt handle will not cause errors.
+    
+    **Example Use Cases**:
+    - Remove processed messages from SQS queues
+    - Clean up failed messages after manual intervention
+    - Integrate with n8n workflows for automated message processing
+    - Batch cleanup operations in distributed systems
     """,
     responses={
         200: {
@@ -280,8 +400,44 @@ async def health():
                 }
             }
         },
-        401: {"description": "Authentication required"},
-        500: {"description": "AWS or internal server error"}
+        401: {
+            "description": "Authentication failed - Invalid or missing API key",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid password. Use: Authorization: Bearer your_password"
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Validation error - Invalid request parameters",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["body", "id_aws"],
+                                "msg": "field required",
+                                "type": "value_error.missing"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "AWS connection error or internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": False,
+                        "message": "Error connecting to AWS SQS",
+                        "queue_url": None
+                    }
+                }
+            }
+        }
     }
 )
 async def delete_message(request: DeleteRequest, _: bool = Depends(verify_api_key)):
@@ -330,6 +486,18 @@ async def delete_message(request: DeleteRequest, _: bool = Depends(verify_api_ke
     Verify that the service can successfully connect to AWS SQS with current credentials.
     
     **Use this to**: Validate AWS credentials and network connectivity before processing messages.
+    
+    **Perfect for**:
+    - Pre-deployment validation
+    - Troubleshooting connection issues
+    - Monitoring script integration
+    - Health check automation
+    
+    **What it validates**:
+    - AWS credentials are valid
+    - Network connectivity to AWS SQS
+    - Service region configuration
+    - Basic SQS service availability
     """,
     responses={
         200: {
@@ -344,8 +512,28 @@ async def delete_message(request: DeleteRequest, _: bool = Depends(verify_api_ke
                 }
             }
         },
-        401: {"description": "Authentication required"},
-        500: {"description": "AWS connection failed"}
+        401: {
+            "description": "Authentication failed - Invalid or missing API key",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid password. Use: Authorization: Bearer your_password"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "AWS connection failed - Check credentials and connectivity",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": False,
+                        "message": "Failed to connect to AWS SQS: Unable to locate credentials",
+                        "region": "unknown"
+                    }
+                }
+            }
+        }
     }
 )
 async def test_connection(_: bool = Depends(verify_api_key)):

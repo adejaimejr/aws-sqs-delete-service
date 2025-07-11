@@ -17,7 +17,7 @@ Este projeto foi criado para **simplificar drasticamente** o uso do n8n com AWS 
 - Código repetitivo em workflows
 
 ### Com este serviço:
-- **Um único endpoint HTTP** (`POST /delete-message`)
+- **Um único endpoint HTTP** (`POST /delete`)
 - **Configuração centralizada** de credenciais AWS
 - **Resposta instantânea** (sucesso/erro)
 - **Integração direta** com qualquer workflow n8n
@@ -60,12 +60,15 @@ docker run -p 8000:8000 --env-file .env aws-sqs-remove
 ```json
 {
   "method": "POST",
-  "url": "http://seu-servidor:8000/delete-message",
+  "url": "http://seu-servidor:8000/delete",
   "headers": {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "X-API-Key": "sua-chave-api-aqui"
   },
   "body": {
-    "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/sua-fila",
+    "id_aws": "123456789012",
+    "queue_name": "sua-fila.fifo",
+    "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
     "receipt_handle": "AQEBwJ..."
   }
 }
@@ -73,13 +76,21 @@ docker run -p 8000:8000 --env-file .env aws-sqs-remove
 
 ## 📡 API Endpoints
 
-### `POST /delete-message`
+### `POST /delete`
 Remove uma mensagem específica da fila SQS.
+
+**Headers:**
+```
+X-API-Key: sua-chave-api-aqui
+Content-Type: application/json
+```
 
 **Body:**
 ```json
 {
-  "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/sua-fila",
+  "id_aws": "123456789012",
+  "queue_name": "sua-fila.fifo",
+  "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
   "receipt_handle": "AQEBwJ..."
 }
 ```
@@ -88,7 +99,8 @@ Remove uma mensagem específica da fila SQS.
 ```json
 {
   "success": true,
-  "message": "Mensagem removida com sucesso"
+  "message": "Mensagem removida com sucesso",
+  "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/sua-fila.fifo"
 }
 ```
 
@@ -96,22 +108,29 @@ Remove uma mensagem específica da fila SQS.
 ```json
 {
   "success": false,
-  "error": "Descrição do erro"
+  "message": "Descrição do erro",
+  "queue_url": null
 }
 ```
 
 ### `GET /health`
 Verifica se o serviço está funcionando.
 
+### `GET /test-connection`
+Testa a conexão com AWS SQS e valida credenciais.
+
 ### `GET /docs`
-Documentação interativa da API (Swagger UI).
+Documentação interativa da API (Swagger UI) com exemplos abrangentes e trechos de código.
 
 ## 🔒 Segurança
 
+- **Autenticação via API Key** através do header `X-API-Key`
 - **Credenciais AWS** gerenciadas via variáveis de ambiente
 - **Validação de entrada** para todos os parâmetros
 - **Logs detalhados** para auditoria
 - **Suporte a HTTPS** quando configurado com proxy reverso
+- **Rate limiting** - 100 requisições por minuto por chave API
+- **Tratamento seguro de credenciais** - Nunca expor informações sensíveis em logs
 
 ## 📁 Estrutura do Projeto
 
@@ -152,6 +171,10 @@ Documentação interativa da API (Swagger UI).
 - **Health Checks**: Monitoramento de saúde da aplicação
 - **Logging Estruturado**: Logs detalhados para debugging
 - **Error Handling**: Tratamento robusto de erros AWS
+- **Documentação Profissional da API**: Swagger UI abrangente com exemplos de código
+- **Exemplos Multi-linguagem**: Exemplos em Python, JavaScript e cURL na documentação
+- **Respostas de Erro Detalhadas**: Mensagens de erro estruturadas com soluções
+- **Teste Interativo**: Interface de teste integrada da API via `/docs`
 
 ## 🧪 Testando
 
@@ -161,11 +184,17 @@ Teste o serviço com curl:
 # Verificação de saúde
 curl http://localhost:8000/health
 
+# Testar conexão AWS
+curl -H "X-API-Key: sua-chave-api-aqui" http://localhost:8000/test-connection
+
 # Deletar mensagem
-curl -X POST http://localhost:8000/delete-message \
+curl -X POST http://localhost:8000/delete \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: sua-chave-api-aqui" \
   -d '{
-    "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/sua-fila",
+    "id_aws": "123456789012",
+    "queue_name": "sua-fila.fifo",
+    "sqs_endpoint": "sqs.us-east-1.amazonaws.com",
     "receipt_handle": "seu-receipt-handle"
   }'
 ```
